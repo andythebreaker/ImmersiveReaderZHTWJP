@@ -1,0 +1,58 @@
+import re
+
+# 判斷是不是日文平假名或片假名
+def contains_jp(text):
+    # 平假名 \u3040-\u309F，片假名 \u30A0-\u30FF，日文句號等 \u3000-\u303F
+    return re.search(r'[\u3040-\u30FF]', text) is not None
+
+def repl_single_jp(m):
+    # 單一假名、片假名字元標註
+    ch = m.group(0)
+    return f'</p><p class="JP">{ch}</p><p class="ZHTW">'
+
+def mark_jp_in_zh(text):
+    # 1. 處理「」內只要有日文，全包成JP
+    def repl_quotes(m):
+        content = m.group(1)
+        if contains_jp(content):
+            return f'</p><p class="JP">「{content}」</p><p class="ZHTW">'
+        else:
+            return f'「{content}」'
+    text = re.sub(r'「(.*?)」', repl_quotes, text)
+
+    # 2. 處理「」外的單一日文字元標註
+    # 首先找出「」區間，避免誤標
+    quote_spans = [m.span() for m in re.finditer(r'</p><p class="JP">「.*?」</p><p class="ZHTW">|「.*?」', text)]
+    result = []
+    last_end = 0
+    for start, end in quote_spans:
+        # 處理區間外的部分
+        chunk = text[last_end:start]
+        # 在這裡單字標註
+        chunk = re.sub(r'[\u3040-\u30FF]', repl_single_jp, chunk)
+        result.append(chunk)
+        # 保留「」或已包JP的部分不再處理
+        result.append(text[start:end])
+        last_end = end
+    # 最後一段
+    chunk = text[last_end:]
+    chunk = re.sub(r'[\u3040-\u30FF]', repl_single_jp, chunk)
+    result.append(chunk)
+    return ''.join(result)
+
+def process_xml(xml_text):
+    # 處理所有 ZHTW 段
+    def repl(m):
+        original = m.group(0)
+        content = m.group(1)
+        # 標註JP
+        new_content = mark_jp_in_zh(content)
+        return f'<p class="ZHTW">{new_content}</p>'
+    # 只處理ZHTW
+    result = re.sub(r'<p class="ZHTW">(.*?)</p>', repl, xml_text, flags=re.DOTALL)
+    return result
+
+if __name__ == "__main__":
+    xml_input = '''<p class="JP">投票してくれた読者ちゃんありがと～♡</p> <p class="ZHTW">的意思是「謝謝投票給我的讀者們♡」。</p> <p class="JP">投票してくれた</p> <p class="ZHTW">是動詞「投票する」的て形＋「くれる」，表示「為我做了…」；「ありがと～」是「ありがとう」的口語縮略。</p> <p class="JP">じつはめっちゃしゃべるから、リサがとなりにいたらうるさいかも(笑)。</p> <p class="ZHTW">的意思是「其實超會說話，如果莉莎在旁邊可能會很吵（笑）」。</p> <p class="JP">めっちゃしゃべる／うるさいかも</p> <p class="ZHTW">「めっちゃ」是「非常、超級」的口語；「しゃべる」是「說話」；「うるさいかも」是「可能很吵」。</p> <p class="JP">たくさん話して仲良くなりたい、かわいいものを共有し合いたい。</p> <p class="ZHTW">的意思是「想多聊聊變得更熟，想一起分享可愛的東西」。</p> <p class="JP">共有し合いたい</p> <p class="ZHTW">是「互相分享」；「～たい」表願望，表示「想要…」。</p> <p class="JP">リサをもっと知りたいというプチからの声がいっぱい♪</p> <p class="ZHTW">的意思是「等等，有很多小粉絲說想更了解莉莎♪」。</p> <p class="JP">声がいっぱい</p> <p class="ZHTW">「プチ」在此指「小粉絲」；「声がいっぱい」是「大家的聲音很多、反饋很多」。</p> <p class="JP">班長やリーダーの経験があるから、みんなにもイメージしてもらえてうれしい!</p> <p class="ZHTW">的意思是「因為有班長和領導者的經驗，能讓大家想像到我，真開心！」。</p> <p class="JP">イメージしてもらえて</p> <p class="ZHTW">是て形＋「もらう」的被動用法，表示「被別人…」。</p> <p class="JP">みんなを引っぱっていけるようにがんばるよ☆</p> <p class="ZHTW">的意思是「我會努力帶領大家☆」。</p> <p class="JP">引っぱっていけるように</p> <p class="ZHTW">「引っぱっていく」是「帶領領導（團隊）」；「ように」＋動詞表示「為了能…」。</p> <p class="JP">リーダーシップがある、モデル合宿でキャプテンがんばってた!</p> <p class="ZHTW">的意思是「有領導力，在Model合宿中擔任隊長並努力表現！」。</p> <p class="JP">キャプテンがんばってた</p> <p class="ZHTW">是「當隊長時很努力」；過去進行式てた，表示持續做某事。</p> <p class="JP">プチ園の声や、プチモのまとめ役!(イチカ)などだれもがみとめるリーダー☆</p> <p class="ZHTW">的意思是「小粉絲們的讚聲、作為小模們的統籌（Ichika），是人人都認可的領導者☆」。</p> <p class="JP">まとめ役／みとめる</p> <p class="ZHTW">「まとめ役」是「統籌／歸納整理的角色」；「みとめる」是「認可、承認」。</p> '''
+    new_xml = process_xml(xml_input)
+    print(new_xml)
