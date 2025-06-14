@@ -52,6 +52,10 @@ html
         nav a, nav button {
           margin-right: 5px;
         }
+        #preview-output {
+          border: 1px solid #ddd;
+          padding: 10px;
+        }
    body
       nav.navbar.navbar-expand-lg.navbar-light.bg-light
         .container-fluid
@@ -68,6 +72,7 @@ html
             button#toggle-mode.btn.btn-secondary.btn-sm.ms-2 Toggle Processing Mode
 
       .container.mt-4
+        button#preview-separation.btn.btn-info.float-end.me-2 預覽分離結果
         button(class="immersive-reader-button btn btn-primary float-end" data-button-style="iconAndText" data-locale="auto")
 
         h1#ir-title.mb-3 閱讀器
@@ -76,6 +81,7 @@ html
             p #{inText}
           else
             include x.html
+        div#preview-output.mt-4
 
 script(type="text/javascript").
     // Flag to track if we're using mixed language processing or single language
@@ -84,6 +90,10 @@ script(type="text/javascript").
     // Configure Immersive Reader button
     $(".immersive-reader-button").click(function () {
         handleLaunchImmersiveReader();
+    });
+
+    $("#preview-separation").click(function() {
+        previewLanguageSeparation();
     });
 
     // Configure toggle button for language mode
@@ -276,4 +286,41 @@ script(type="text/javascript").
       });
       
       console.log("Content pre-processed for mixed language handling");
+    }
+
+    function previewLanguageSeparation() {
+        preProcessContent();
+
+        const content = $("#ir-content").html();
+        const title = $("#ir-title").text();
+
+        let detectedLanguage;
+        const isLanguageTable = content.includes('language-indicator-column');
+        if (isLanguageTable) {
+            detectedLanguage = 'zh-tw';
+        } else {
+            detectedLanguage = detectLanguage(content);
+        }
+
+        let result;
+        if (useMixedLanguageProcessing) {
+            result = processMixedLanguageContent('token', 'subdomain', title, content);
+        } else {
+            result = {
+                title: title,
+                chunks: [{
+                    content: content,
+                    mimeType: "text/html",
+                    lang: detectedLanguage
+                }]
+            };
+        }
+
+        const outputDiv = document.getElementById('preview-output');
+        outputDiv.innerHTML = '';
+        result.chunks.forEach((chunk, i) => {
+            const header = `<h5>Chunk ${i+1} (${chunk.lang})</h5>`;
+            const chunkHtml = `<div class="${chunk.lang === 'ja' ? 'japanese-section' : 'chinese-section'}">${chunk.content}</div>`;
+            outputDiv.innerHTML += header + chunkHtml;
+        });
     }
