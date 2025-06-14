@@ -40,6 +40,53 @@ def mark_jp_in_zh(text):
     result.append(chunk)
     return ''.join(result)
 
+def cleanup_xml(xml_text):
+    """
+    1. 移除空的DOM元素
+    2. 合併相同class的相鄰DOM元素
+    """
+    # 使用正則表達式找出所有DOM元素
+    pattern = r'<p class="([^"]+)">(.*?)</p>'
+    
+    # 解析XML找出所有元素
+    elements = []
+    for match in re.finditer(pattern, xml_text):
+        class_name = match.group(1)
+        content = match.group(2)
+        elements.append((class_name, content))
+    
+    # 移除空白DOM並合併相同class的相鄰元素
+    merged_elements = []
+    current_class = None
+    current_content = ""
+    
+    for class_name, content in elements:
+        # 跳過空的DOM元素
+        if not content.strip():
+            continue
+        
+        # 如果與前一個元素的class相同，則合併
+        if class_name == current_class:
+            current_content += content
+        else:
+            # 保存前一個處理好的元素（如果有的話）
+            if current_class:
+                merged_elements.append((current_class, current_content))
+            # 開始新的元素
+            current_class = class_name
+            current_content = content
+    
+    # 加入最後一個元素（如果有的話）
+    if current_class:
+        merged_elements.append((current_class, current_content))
+    
+    # 重建XML
+    result = []
+    for class_name, content in merged_elements:
+        result.append(f'<p class="{class_name}">{content}</p>')
+    
+    return ' '.join(result)
+
 def process_xml(xml_text):
     # 處理所有 ZHTW 段
     def repl(m):
@@ -48,11 +95,23 @@ def process_xml(xml_text):
         # 標註JP
         new_content = mark_jp_in_zh(content)
         return f'<p class="ZHTW">{new_content}</p>'
+    
     # 只處理ZHTW
     result = re.sub(r'<p class="ZHTW">(.*?)</p>', repl, xml_text, flags=re.DOTALL)
+    
+    # 進行DOM清理和合併
+    result = cleanup_xml(result)
+    
     return result
 
 if __name__ == "__main__":
-    xml_input = '''<p class="JP">投票してくれた読者ちゃんありがと～♡</p> <p class="ZHTW">的意思是「謝謝投票給我的讀者們♡」。</p> <p class="JP">投票してくれた</p> <p class="ZHTW">是動詞「投票する」的て形＋「くれる」，表示「為我做了…」；「ありがと～」是「ありがとう」的口語縮略。</p> <p class="JP">じつはめっちゃしゃべるから、リサがとなりにいたらうるさいかも(笑)。</p> <p class="ZHTW">的意思是「其實超會說話，如果莉莎在旁邊可能會很吵（笑）」。</p> <p class="JP">めっちゃしゃべる／うるさいかも</p> <p class="ZHTW">「めっちゃ」是「非常、超級」的口語；「しゃべる」是「說話」；「うるさいかも」是「可能很吵」。</p> <p class="JP">たくさん話して仲良くなりたい、かわいいものを共有し合いたい。</p> <p class="ZHTW">的意思是「想多聊聊變得更熟，想一起分享可愛的東西」。</p> <p class="JP">共有し合いたい</p> <p class="ZHTW">是「互相分享」；「～たい」表願望，表示「想要…」。</p> <p class="JP">リサをもっと知りたいというプチからの声がいっぱい♪</p> <p class="ZHTW">的意思是「等等，有很多小粉絲說想更了解莉莎♪」。</p> <p class="JP">声がいっぱい</p> <p class="ZHTW">「プチ」在此指「小粉絲」；「声がいっぱい」是「大家的聲音很多、反饋很多」。</p> <p class="JP">班長やリーダーの経験があるから、みんなにもイメージしてもらえてうれしい!</p> <p class="ZHTW">的意思是「因為有班長和領導者的經驗，能讓大家想像到我，真開心！」。</p> <p class="JP">イメージしてもらえて</p> <p class="ZHTW">是て形＋「もらう」的被動用法，表示「被別人…」。</p> <p class="JP">みんなを引っぱっていけるようにがんばるよ☆</p> <p class="ZHTW">的意思是「我會努力帶領大家☆」。</p> <p class="JP">引っぱっていけるように</p> <p class="ZHTW">「引っぱっていく」是「帶領領導（團隊）」；「ように」＋動詞表示「為了能…」。</p> <p class="JP">リーダーシップがある、モデル合宿でキャプテンがんばってた!</p> <p class="ZHTW">的意思是「有領導力，在Model合宿中擔任隊長並努力表現！」。</p> <p class="JP">キャプテンがんばってた</p> <p class="ZHTW">是「當隊長時很努力」；過去進行式てた，表示持續做某事。</p> <p class="JP">プチ園の声や、プチモのまとめ役!(イチカ)などだれもがみとめるリーダー☆</p> <p class="ZHTW">的意思是「小粉絲們的讚聲、作為小模們的統籌（Ichika），是人人都認可的領導者☆」。</p> <p class="JP">まとめ役／みとめる</p> <p class="ZHTW">「まとめ役」是「統籌／歸納整理的角色」；「みとめる」是「認可、承認」。</p> '''
+    # 一般範例
+    xml_input = '''
+    <p class="JP">投票してくれた読者ちゃんありがと～♡</p> <p class="ZHTW">的意思是「謝謝投票給我的讀者們♡」。</p> <p class="JP">投票してくれた</p> <p class="ZHTW">是動詞「投票する」的て形＋「くれる」，表示「為我做了…」；「ありがと～」是「ありがとう」的口語縮略。</p> <p class="JP">じつはめっちゃしゃべるから、リサがとなりにいたらうるさいかも(笑)。</p> <p class="ZHTW">的意思是「其實超會說話，如果莉莎在旁邊可能會很吵（笑）」。</p> <p class="JP">めっちゃしゃべる／うるさいかも</p> <p class="ZHTW">「めっちゃ」是「非常、超級」的口語；「しゃべる」是「說話」；「うるさいかも」是「可能很吵」。</p> <p class="JP">たくさん話して仲良くなりたい、かわいいものを共有し合いたい。</p> <p class="ZHTW">的意思是「想多聊聊變得更熟，想一起分享可愛的東西」。</p> <p class="JP">共有し合いたい</p> <p class="ZHTW">是「互相分享」；「～たい」表願望，表示「想要…」。</p> <p class="JP">リサをもっと知りたいというプチからの声がいっぱい♪</p> <p class="ZHTW">的意思是「等等，有很多小粉絲說想更了解莉莎♪」。</p> <p class="JP">声がいっぱい</p> <p class="ZHTW">「プチ」在此指「小粉絲」；「声がいっぱい」是「大家的聲音很多、反饋很多」。</p> <p class="JP">班長やリーダーの経験があるから、みんなにもイメージしてもらえてうれしい!</p> <p class="ZHTW">的意思是「因為有班長和領導者的經驗，能讓大家想像到我，真開心！」。</p> <p class="JP">イメージしてもらえて</p> <p class="ZHTW">是て形＋「もらう」的被動用法，表示「被別人…」。</p> <p class="JP">みんなを引っぱっていけるようにがんばるよ☆</p> <p class="ZHTW">的意思是「我會努力帶領大家☆」。</p> <p class="JP">引っぱっていけるように</p> <p class="ZHTW">「引っぱっていく」是「帶領領導（團隊）」；「ように」＋動詞表示「為了能…」。</p> <p class="JP">リーダーシップがある、モデル合宿でキャプテンがんばってた!</p> <p class="ZHTW">的意思是「有領導力，在Model合宿中擔任隊長並努力表現！」。</p> <p class="JP">キャプテンがんばってた</p> <p class="ZHTW">是「當隊長時很努力」；過去進行式てた，表示持續做某事。</p> <p class="JP">プチ園の声や、プチモのまとめ役!(イチカ)などだれもがみとめるリーダー☆</p> <p class="ZHTW">的意思是「小粉絲們的讚聲、作為小模們的統籌（Ichika），是人人都認可的領導者☆」。</p> <p class="JP">まとめ役／みとめる</p> <p class="ZHTW">「まとめ役」是「統籌／歸納整理的角色」；「みとめる」是「認可、承認」。</p> 
+
+    '''
+    
+    print("處理一般XML範例:")
     new_xml = process_xml(xml_input)
     print(new_xml)
+    
