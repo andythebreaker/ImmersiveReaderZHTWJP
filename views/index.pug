@@ -222,9 +222,14 @@ script(type="text/javascript").
     function preProcessContent() {
       // Get original content
       const contentDiv = document.getElementById('ir-content');
-      
+
       if (!useMixedLanguageProcessing) {
         // Don't modify content if not using mixed language processing
+        return;
+      }
+
+      // Avoid processing the same content multiple times
+      if (contentDiv.dataset.processed === 'true') {
         return;
       }
       
@@ -284,7 +289,8 @@ script(type="text/javascript").
           item.classList.add('chinese-section');
         }
       });
-      
+
+      contentDiv.dataset.processed = 'true';
       console.log("Content pre-processed for mixed language handling");
     }
 
