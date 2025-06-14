@@ -93,6 +93,12 @@ function detectLanguage(text) {
     if (text.trim() === '日文') return 'ja';
     if (text.trim() === '中文') return 'zh-tw';
 
+    // Check for explicit JP/ZHTW class counts
+    const jpClassCount = (text.match(/class\s*=\s*['"]JP['"]/g) || []).length;
+    const zhClassCount = (text.match(/class\s*=\s*['"]ZHTW['"]/g) || []).length;
+    if (jpClassCount > zhClassCount) return 'ja';
+    if (zhClassCount > jpClassCount) return 'zh-tw';
+
     // Count explicit language markers
     const jaMarkers = (text.match(/日文[:：]|\*\*日文\*\*|\[日文\]|\(日文\)/g) || []).length;
     const zhMarkers = (text.match(/中文[:：]|\*\*中文\*\*|\[中文\]|\(中文\)/g) || []).length;
@@ -148,6 +154,12 @@ function extractJapaneseSections(content) {
 
     // Find all Japanese sections
     const japaneseContent = [];
+
+    // Explicit class-based markers
+    const jpClassElements = tempDiv.querySelectorAll('.JP');
+    jpClassElements.forEach(el => {
+        japaneseContent.push(`<${el.tagName.toLowerCase()} class="japanese-section">${el.innerHTML}</${el.tagName.toLowerCase()}>`);
+    });
 
     // Handle HTML tables specifically - for content like x.html
     const tables = tempDiv.querySelectorAll('table');
@@ -234,6 +246,12 @@ function extractChineseSections(content) {
 
     // Find all Chinese sections
     const chineseContent = [];
+
+    // Explicit class-based markers
+    const zhClassElements = tempDiv.querySelectorAll('.ZHTW');
+    zhClassElements.forEach(el => {
+        chineseContent.push(`<${el.tagName.toLowerCase()} class="chinese-section">${el.innerHTML}</${el.tagName.toLowerCase()}>`);
+    });
 
     // Handle HTML tables specifically - for content like x.html
     const tables = tempDiv.querySelectorAll('table');
@@ -412,6 +430,18 @@ function extractMarkedSections(content) {
     sections.forEach(section => {
         const text = section.textContent || '';
         if (!text.trim()) return;
+
+        // Handle explicit JP/ZHTW classes
+        if (section.classList.contains('JP')) {
+            japaneseHtml += `<${section.tagName.toLowerCase()}>${section.innerHTML}</${section.tagName.toLowerCase()}>`;
+            hasJapanese = true;
+            return;
+        }
+        if (section.classList.contains('ZHTW')) {
+            chineseHtml += `<${section.tagName.toLowerCase()}>${section.innerHTML}</${section.tagName.toLowerCase()}>`;
+            hasChinese = true;
+            return;
+        }
 
         // Japanese section detection
         const jaMarkers = text.match(/(?:日文[:：]|\*\*日文\*\*[:：]?|\[日文\]|\(日文\))\s*([\s\S]*?)(?=(?:\n|$|中文[:：]|\*\*中文\*\*|\[中文\]|\(中文\)))/g);
