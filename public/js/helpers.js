@@ -486,36 +486,23 @@ function processMixedLanguageContent(token, subdomain, title, content) {
     // Check for table content which requires special handling
     const hasTableContent = content.includes('<table') && content.includes('</table>');
 
-    // IMPORTANT: If this is the original table from x.html, we should process the entire table
-    // and maintain all content, not just split it by language
+    // IMPORTANT: If this is the original table from x.html, preserve the table rows
+    // but still separate Japanese and Chinese sections for Immersive Reader.
     const isSpecialTable = content.includes('內容') && content.includes('語言（念中文還是日文）');
 
+    // Pre-process the special table so each row has proper language markers
+    let tableProcessedContent = content;
     if (isSpecialTable) {
-        console.log("Detected special language table, using combined approach");
-        // When dealing with the special language table, we need to keep both languages together
-        // but still mark each row with the appropriate language
-
+        console.log("Detected special language table, using combined extraction");
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = content;
-
-        // Process the table, but keep it whole
-        const processedContent = processTableWithLanguageMarkers(tempDiv);
-
-        // We're returning the processed content as a single chunk, but with language markers
-        return {
-            title: title,
-            chunks: [{
-                content: processedContent,
-                mimeType: "text/html"
-                // No specific language here, as we'll let the Immersive Reader process
-                // the language markers in the HTML
-            }]
-        };
+        tableProcessedContent = processTableWithLanguageMarkers(tempDiv);
     }
-    else if (hasTableContent) {
-        console.log("Detected standard table content, extracting languages");
+
+    if (hasTableContent || isSpecialTable) {
+        console.log("Detected table content, extracting languages");
         const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = content;
+        tempDiv.innerHTML = tableProcessedContent;
 
         // Process table with language markers
         let japaneseHtml = '<div lang="ja">';
