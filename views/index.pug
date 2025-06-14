@@ -135,8 +135,18 @@ script(type="text/javascript").
                 const content = $("#ir-content").html();
                 const title = $("#ir-title").text();
                 
-                // Detect the primary language of the content
-                const detectedLanguage = detectLanguage(content);
+                // Detect the primary language of the content unless it is the
+                // pre-processed language table. The table already includes
+                // explicit language markers so running detection again can
+                // mis-classify the text.
+                let detectedLanguage;
+                const isLanguageTable = content.includes('language-indicator-column');
+                if (isLanguageTable) {
+                    // Skip detection for language tables
+                    detectedLanguage = 'zh-tw';
+                } else {
+                    detectedLanguage = detectLanguage(content);
+                }
                 console.log("Detected language:", detectedLanguage);
                 
                 // Process the content by language
