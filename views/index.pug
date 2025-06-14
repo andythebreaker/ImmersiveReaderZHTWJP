@@ -86,7 +86,17 @@ html
 script(type="text/javascript").
     // Flag to track if we're using mixed language processing or single language
     let useMixedLanguageProcessing = true;
+    // Style injection for the open source "\u8FB0\u5B87\u843D\u96C9\u9AD4" font
+    const CUSTOM_FONT_STYLE = "<style>@font-face { font-family: 'Chenyuluoyan'; src: url('/fonts/ChenYuluoyan-Thin.ttf') format('truetype'); font-weight: normal; font-style: normal; } .chenyuluoyan-font { font-family: 'Chenyuluoyan', sans-serif; }</style>";
 
+    function applyCustomFont(data) {
+        if (data && Array.isArray(data.chunks)) {
+            data.chunks = data.chunks.map(chunk => ({
+                ...chunk,
+                content: CUSTOM_FONT_STYLE + `<div class="chenyuluoyan-font">${chunk.content}</div>`
+            }));
+        }
+    }
     // Configure Immersive Reader button
     $(".immersive-reader-button").click(function () {
         handleLaunchImmersiveReader();
@@ -197,6 +207,9 @@ script(type="text/javascript").
                 }]
             };
         }
+
+        // Apply custom font styling to the data chunks
+        applyCustomFont(data);
 
         // Configure options for Immersive Reader
         const options = {
