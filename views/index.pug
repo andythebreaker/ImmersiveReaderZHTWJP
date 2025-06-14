@@ -60,8 +60,9 @@ html
               a.nav-link(href='/') Home
             li.nav-item
               a.nav-link(href='/options') Options
-          button.btn.btn-outline-secondary.me-2(onclick="const regex = /\\[\\d+\\]/gm; document.getElementById('ir-content').innerHTML=document.getElementById('ir-content').innerHTML.replace(regex, '');") Remove d+
-          button#toggle-mode.btn.btn-secondary.btn-sm.ms-2 Toggle Processing Mode
+            button.btn.btn-outline-secondary.me-2(onclick="const regex = /\\[\\d+\\]/gm; document.getElementById('ir-content').innerHTML=document.getElementById('ir-content').innerHTML.replace(regex, '');") Remove d+
+            button.btn.btn-outline-secondary.me-2(onclick="const nlRegex = /(\\\\n|\n|\r)+/gm; const elem = document.getElementById('ir-content'); elem.innerHTML = elem.innerHTML.replace(nlRegex, '');") Remove \\n
+            button#toggle-mode.btn.btn-secondary.btn-sm.ms-2 Toggle Processing Mode
 
       .container.mt-4
         button(class="immersive-reader-button btn btn-primary float-end" data-button-style="iconAndText" data-locale="auto")
