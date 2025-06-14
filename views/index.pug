@@ -1,0 +1,249 @@
+doctype html
+html
+   head
+      title Immersive Reader Quickstart Node.js      link(rel='icon', href='data:;base64,iVBORw0KGgo=')
+
+      link(rel='stylesheet', href='https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css', integrity='sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3', crossorigin='anonymous')
+      
+      // A polyfill for Promise is needed for IE11 support.
+      script(src='https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js')
+      script(src='https://ircdname.azureedge.net/immersivereadersdk/immersive-reader-sdk.1.4.0.js')
+      script(src='https://code.jquery.com/jquery-3.6.0.min.js', integrity='sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=', crossorigin='anonymous')
+      script(src='../js/helpers.js')
+      
+      style(type="text/css").
+        .immersive-reader-button {
+          background-color: white;
+          margin-top: 5px;
+          border: 1px solid black;
+          float: right;
+        }
+        
+        /* Style for Japanese sections */
+        .japanese-section {
+          border-left: 3px solid #4285F4; /* Google Blue */
+          padding-left: 10px;
+          margin-bottom: 8px;
+          background-color: rgba(66, 133, 244, 0.05);
+        }
+        
+        /* Style for Chinese sections */
+        .chinese-section {
+          border-left: 3px solid #EA4335; /* Google Red */
+          padding-left: 10px;
+          margin-bottom: 8px;
+          background-color: rgba(234, 67, 53, 0.05);
+        }
+        
+        /* Mixed mode styling */
+        .mixed-mode .japanese-section {
+          background-color: rgba(66, 133, 244, 0.1);
+        }
+        
+        .mixed-mode .chinese-section {
+          background-color: rgba(234, 67, 53, 0.1);
+        }
+        
+        /* Style for the toggle mode button */
+        #toggle-mode {
+          transition: all 0.3s ease;
+        }
+        
+        /* Add spacing between nav items */
+        nav a, nav button {
+          margin-right: 5px;
+        }
+   body
+      div(class="container")
+        nav
+            a(href='/') Home | 
+            a(href='/options') Options
+            button(onclick="const regex = /\\[\\d+\\]/gm; document.getElementById('ir-content').innerHTML=document.getElementById('ir-content').innerHTML.replace(regex, '');") remove d+
+            button(id="toggle-mode" class="btn btn-secondary btn-sm ml-2" style="margin-left: 10px;") Toggle Processing Mode
+
+        button(class="immersive-reader-button" data-button-style="iconAndText" data-locale="auto")
+
+        h1(id="ir-title") 閱讀器
+        div(id="ir-content" lang="auto")
+          if isApi
+            p #{inText}
+          else 
+            include x.html
+
+script(type="text/javascript").
+    // Flag to track if we're using mixed language processing or single language
+    let useMixedLanguageProcessing = true;
+
+    // Configure Immersive Reader button
+    $(".immersive-reader-button").click(function () {
+        handleLaunchImmersiveReader();
+    });
+
+    // Configure toggle button for language mode
+    $("#toggle-mode").click(function() {
+        useMixedLanguageProcessing = !useMixedLanguageProcessing;
+        updateToggleButtonUI();
+        
+        // Provide visual feedback
+        const contentDiv = document.getElementById('ir-content');
+        if (useMixedLanguageProcessing) {
+            contentDiv.classList.add('mixed-mode');
+            contentDiv.classList.remove('single-mode');
+            alert('已切換到多語言模式 - 日文和中文將分開處理');
+        } else {
+            contentDiv.classList.add('single-mode');
+            contentDiv.classList.remove('mixed-mode');
+            alert('已切換到單語言模式 - 整個內容將以單一語言處理');
+        }
+    });
+
+    // Helper function to update toggle button UI
+    function updateToggleButtonUI() {
+        const button = $("#toggle-mode");
+        if (useMixedLanguageProcessing) {
+            button.text("多語言模式 (日文+中文)");
+            button.addClass("btn-primary");
+            button.removeClass("btn-secondary");
+        } else {
+            button.text("單語言模式");
+            button.addClass("btn-secondary");
+            button.removeClass("btn-primary");
+        }
+    }
+
+    // Initialize the toggle button text
+    $(document).ready(function() {
+        updateToggleButtonUI();
+    });
+     function handleLaunchImmersiveReader() {
+        // First, pre-process content to add language markers
+        preProcessContent();
+        
+        getTokenAndSubdomainAsync()
+            .then(function (response) {
+                const token = response["token"];
+                const subdomain = response["subdomain"];
+                
+                // Get content from the page (after pre-processing)
+                const content = $("#ir-content").html();
+                const title = $("#ir-title").text();
+                
+                // Detect the primary language of the content
+                const detectedLanguage = detectLanguage(content);
+                console.log("Detected language:", detectedLanguage);
+                
+                // Process the content by language
+                processContentByLanguage(token, subdomain, title, content, detectedLanguage);
+            })
+            .catch(function (error) {
+                console.log(error);
+                alert("Error in getting the Immersive Reader token and subdomain. Check the console.");
+            });
+    }function processContentByLanguage(token, subdomain, title, content, language) {
+        let data;
+        
+        console.log("Processing content. Language detection:", language);
+        console.log("Has Japanese:", containsJapanese(content));
+        console.log("Has Chinese:", containsChinese(content));
+        
+        if (useMixedLanguageProcessing) {
+            console.log("Using mixed language processing");
+            // Extract Japanese and Chinese sections and create separate chunks
+            data = processMixedLanguageContent(token, subdomain, title, content);
+            
+            // Log what we're passing to Immersive Reader
+            if (data.chunks) {
+                data.chunks.forEach((chunk, index) => {
+                    console.log(`Chunk ${index + 1} language: ${chunk.lang}`);
+                    console.log(`Chunk ${index + 1} content length: ${chunk.content.length} characters`);
+                });
+            }
+        } else {
+            // Process as single language content
+            console.log("Using single language processing with language:", language);
+            data = {
+                title: title,
+                chunks: [{
+                    content: content,
+                    mimeType: "text/html",
+                    lang: language  // Set the detected language
+                }]
+            };
+        }
+
+        // Configure options for Immersive Reader
+        const options = {
+            "onExit": exitCallback,
+            "uiZIndex": 2000,
+            // Use generic UI language as we have multiple language chunks
+            "timeout": 10000    // Timeout in milliseconds
+        };
+
+        console.log("Launching Immersive Reader with", data.chunks.length, "chunks");
+        
+        // Launch Immersive Reader with the configured options
+        ImmersiveReader.launchAsync(token, subdomain, data, options)
+            .catch(function (error) {
+                console.log(error);
+                alert("Error in launching the Immersive Reader. Check the console.");
+            });
+    }
+
+    function exitCallback() {
+        console.log("This is the callback function. It is executed when the Immersive Reader closes.");
+    }    // Add a function to pre-process content before sending to Immersive Reader
+    function preProcessContent() {
+      // Get original content
+      const contentDiv = document.getElementById('ir-content');
+      
+      if (!useMixedLanguageProcessing) {
+        // Don't modify content if not using mixed language processing
+        return;
+      }
+      
+      // Process all paragraphs in the content
+      const html = contentDiv.innerHTML;
+      
+      // Parse the content and mark Japanese/Chinese sections
+      const processedHtml = html.replace(/([^>]*?)日文[:：]([^<]*)/g, function(match, p1, p2) {
+        return `${p1}<span lang="ja" class="japanese-section">日文：${p2}</span>`;
+      }).replace(/([^>]*?)中文[:：]([^<]*)/g, function(match, p1, p2) {
+        return `${p1}<span lang="zh-tw" class="chinese-section">中文：${p2}</span>`;
+      }).replace(/\*\*日文\*\*([^<]*)/g, function(match, content) {
+        return `<span lang="ja" class="japanese-section">**日文**${content}</span>`;
+      });
+      
+      // Update the content with marked sections
+      contentDiv.innerHTML = processedHtml;
+      
+      // Add language attributes to help with language detection
+      const paragraphs = contentDiv.querySelectorAll('p');
+      paragraphs.forEach(para => {
+        const text = para.textContent;
+        
+        if (text.includes('**日文**') || text.includes('日文：')) {
+          // Mark Japanese sections
+          para.setAttribute('lang', 'ja');
+          para.classList.add('japanese-section');
+        } else if (text.includes('中文：')) {
+          // Mark Chinese sections
+          para.setAttribute('lang', 'zh-tw');
+          para.classList.add('chinese-section');
+        }
+      });
+      
+      // Mark all list items containing Japanese characters
+      const items = contentDiv.querySelectorAll('li');
+      items.forEach(item => {
+        const text = item.textContent;
+        if (containsJapanese(text)) {
+          item.setAttribute('lang', 'ja');
+          item.classList.add('japanese-section');
+        } else if (containsChinese(text) && !containsJapanese(text)) {
+          item.setAttribute('lang', 'zh-tw');
+          item.classList.add('chinese-section');
+        }
+      });
+      
+      console.log("Content pre-processed for mixed language handling");
+    }

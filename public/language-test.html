@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Language Detection Test</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="../stylesheets/style.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+        }
+        
+        .test-case {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        .test-input {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 3px;
+        }
+        
+        .result {
+            font-weight: bold;
+        }
+        
+        .result.ja {
+            color: #4285F4;
+        }
+        
+        .result.zh {
+            color: #EA4335;
+        }
+        
+        .test-content {
+            margin-top: 20px;
+        }
+        
+        .japanese-section {
+            border-left: 3px solid #4285F4;
+            padding-left: 10px;
+            margin-bottom: 8px;
+            background-color: rgba(66, 133, 244, 0.05);
+        }
+        
+        .chinese-section {
+            border-left: 3px solid #EA4335;
+            padding-left: 10px;
+            margin-bottom: 8px;
+            background-color: rgba(234, 67, 53, 0.05);
+        }
+        
+        /* Mixed mode styling */
+        .mixed-mode .japanese-section {
+            background-color: rgba(66, 133, 244, 0.1);
+        }
+        
+        .mixed-mode .chinese-section {
+            background-color: rgba(234, 67, 53, 0.1);
+        }
+        
+        button {
+            padding: 10px 15px;
+            background-color: #4285F4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        
+        button:hover {
+            background-color: #3367d6;
+        }
+        
+        .test-controls {
+            margin-bottom: 20px;
+        }
+        
+        #output {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+            background-color: #f9f9f9;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #eee;
+            border: 1px solid #ddd;
+            border-radius: 4px 4px 0 0;
+            margin-right: 5px;
+        }
+        
+        .tab.active {
+            background-color: white;
+            border-bottom: none;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 0 4px 4px 4px;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .success {
+            color: green;
+        }
+        
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Mixed Language Detection Test</h1>
+        
+        <div class="tabs">
+            <div class="tab active" data-tab="simple-tests">Simple Tests</div>
+            <div class="tab" data-tab="table-test">Table Test</div>
+            <div class="tab" data-tab="mixed-content-test">Mixed Content</div>
+        </div>
+        
+        <div id="simple-tests" class="tab-content active">
+            <div class="test-controls">
+                <button id="run-simple-tests">Run Simple Tests</button>
+                <button id="clear-results">Clear Results</button>
+            </div>
+            
+            <div class="test-cases">
+                <div class="test-case">
+                    <div class="test-input">これは日本語です。</div>
+                    <div>Expected: <span class="result ja">Japanese (ja)</span></div>
+                    <div>Result: <span id="result-1" class="result"></span></div>
+                </div>
+                
+                <div class="test-case">
+                    <div class="test-input">這是中文。</div>
+                    <div>Expected: <span class="result zh">Chinese (zh-tw)</span></div>
+                    <div>Result: <span id="result-2" class="result"></span></div>
+                </div>
+                
+                <div class="test-case">
+                    <div class="test-input">日文：テスト</div>
+                    <div>Expected: <span class="result ja">Japanese (ja)</span></div>
+                    <div>Result: <span id="result-3" class="result"></span></div>
+                </div>
+                
+                <div class="test-case">
+                    <div class="test-input">中文：测试</div>
+                    <div>Expected: <span class="result zh">Chinese (zh-tw)</span></div>
+                    <div>Result: <span id="result-4" class="result"></span></div>
+                </div>
+                
+                <div class="test-case">
+                    <div class="test-input">混合：テスト和測試</div>
+                    <div>Expected: <span class="result ja">Japanese (ja)</span></div>
+                    <div>Result: <span id="result-5" class="result"></span></div>
+                </div>
+            </div>
+            
+            <div id="output"></div>
+        </div>
+        
+        <div id="table-test" class="tab-content">
+            <div class="test-controls">
+                <button id="run-table-test">Test Table Processing</button>
+                <button id="clear-table-results">Clear Results</button>
+            </div>
+            
+            <div class="test-content">
+                <table border="1">
+                    <tr>
+                        <th>內容</th>
+                        <th>語言（念中文還是日文）</th>
+                    </tr>
+                  
+                    <tr>
+                        <td>接下來我們要一起看一些日文的標題練習唷！</td>
+                        <td>中文</td>
+                    </tr>
+                    <tr>
+                        <td>ルールを守ってかわいく 学年別おしゃれ通学コーデ☆</td>
+                        <td>日文</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div id="table-output" class="output"></div>
+        </div>
+        
+        <div id="mixed-content-test" class="tab-content">
+            <div class="test-controls">
+                <button id="process-mixed-content">Process Mixed Content</button>
+                <button id="clear-mixed-results">Clear Results</button>
+            </div>
+            
+            <div class="test-content">
+                <h2>混合语言测试 / 混合言語テスト</h2>
+                <p>中文：这是中文内容测试</p>
+                <p>日文：これは日本語のテストです</p>
+                <div>
+                    <p>**中文** 更多的中文内容在这里</p>
+                    <p>**日文** もっと日本語のコンテントはここです</p>
+                </div>
+            </div>
+            
+            <div id="mixed-output" class="output"></div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="../js/helpers.js"></script>
+    <script src="../js/language-test.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Tab functionality
+            $('.tab').click(function() {
+                $('.tab').removeClass('active');
+                $('.tab-content').removeClass('active');
+                
+                $(this).addClass('active');
+                $('#' + $(this).data('tab')).addClass('active');
+            });
+            
+            // Run simple tests
+            $('#run-simple-tests').click(function() {
+                const testCases = [
+                    "これは日本語です。",
+                    "這是中文。",
+                    "日文：テスト",
+                    "中文：测试",
+                    "混合：テスト和測試"
+                ];
+                
+                let output = "";
+                
+                testCases.forEach((text, index) => {
+                    const lang = detectLanguage(text);
+                    const resultId = `result-${index + 1}`;
+                    
+                    $(`#${resultId}`).text(lang === 'ja' ? 'Japanese (ja)' : 'Chinese (zh-tw)');
+                    $(`#${resultId}`).removeClass('ja zh');
+                    $(`#${resultId}`).addClass(lang === 'ja' ? 'ja' : 'zh');
+                    
+                    output += `Test ${index + 1}: ${text}\n`;
+                    output += `- Contains Japanese: ${containsJapanese(text)}\n`;
+                    output += `- Contains Chinese: ${containsChinese(text)}\n`;
+                    output += `- Detected language: ${lang}\n\n`;
+                });
+                
+                $('#output').html(`<pre>${output}</pre>`);
+            });
+            
+            // Clear results
+            $('#clear-results').click(function() {
+                $('#output').empty();
+                $('.result').not('.ja').not('.zh').empty();
+            });
+            
+            // Test table processing
+            $('#run-table-test').click(function() {
+                const tableContent = $('.test-content table').prop('outerHTML');
+                
+                const result = processMixedLanguageContent("test-token", "test-subdomain", "Test Table", tableContent);
+                
+                let output = `<h3>Processing Results</h3>`;
+                output += `<p>Found ${result.chunks.length} language chunks:</p>`;
+                
+                result.chunks.forEach((chunk, i) => {
+                    output += `<div class="chunk">`;
+                    output += `<p><strong>Chunk ${i+1} (${chunk.lang}):</strong></p>`;
+                    output += `<div class="${chunk.lang === 'ja' ? 'japanese-section' : 'chinese-section'}">`;
+                    output += chunk.content;
+                    output += `</div>`;
+                    output += `</div>`;
+                });
+                
+                $('#table-output').html(output);
+            });
+            
+            // Clear table results
+            $('#clear-table-results').click(function() {
+                $('#table-output').empty();
+            });
+            
+            // Process mixed content
+            $('#process-mixed-content').click(function() {
+                const mixedContent = $('#mixed-content-test .test-content').html();
+                
+                const result = processMixedLanguageContent("test-token", "test-subdomain", "Mixed Content", mixedContent);
+                
+                let output = `<h3>Processing Results</h3>`;
+                output += `<p>Found ${result.chunks.length} language chunks:</p>`;
+                
+                result.chunks.forEach((chunk, i) => {
+                    output += `<div class="chunk">`;
+                    output += `<p><strong>Chunk ${i+1} (${chunk.lang}):</strong></p>`;
+                    output += `<div class="${chunk.lang === 'ja' ? 'japanese-section' : 'chinese-section'}">`;
+                    output += chunk.content;
+                    output += `</div>`;
+                    output += `</div>`;
+                });
+                
+                $('#mixed-output').html(output);
+            });
+            
+            // Clear mixed results
+            $('#clear-mixed-results').click(function() {
+                $('#mixed-output').empty();
+            });
+        });
+    </script>
+</body>
+</html>

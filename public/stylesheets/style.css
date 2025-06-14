@@ -1,0 +1,24 @@
+body {
+  padding: 50px;
+  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+}
+
+a {
+  color: #00B7FF;
+}
+
+/* Style for language indicator columns that should be hidden from screen readers */
+.language-indicator-column {
+  /* Keep visually visible but hidden from assistive technology */
+  color: #666;
+  font-style: italic;
+}
+
+/* Add styling to distinguish between language sections */
+.japanese-section {
+  color: #0066cc;
+}
+
+.chinese-section {
+  color: #990000;
+}
