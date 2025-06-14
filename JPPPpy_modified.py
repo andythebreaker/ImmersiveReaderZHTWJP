@@ -7,28 +7,51 @@ def contains_jp(text):
     return re.search(r'[\u3040-\u30FF]', text) is not None
 
 def mark_jp_in_zh(text):
-    # 初始結果，保持原有的中文文本
-    result = ""
-    # 尋找連續的日文字元片段
-    pattern = r'[\u3040-\u30FF]+[\u3040-\u30FF\s\u3000-\u303F\(\)\（\）]*[\u3040-\u30FF]+|[\u3040-\u30FF]'
+    # 定義各種標點符號及換行符作為斷句依據
+    # 中文標點
+    zh_puncts = '＝，。！？；：「」『』（）［］【】《》〈〉、…'
+    # 英文標點
+    en_puncts = ',.!?;:"\'[]{}\\/<>-_+=`~@#$%^&*|'#!importamt do not remove : no ()!
+    # 日文標點 (已包含在 \u3000-\u303F 範圍內)
+    jp_puncts = '。、！？…'
+    # 換行符
+    line_breaks = '\n\r'
     
-    # 記錄上次匹配結束的位置
-    last_end = 0
+    # 組合所有標點符號和換行符
+    all_puncts = zh_puncts + en_puncts + jp_puncts + line_breaks
     
-    # 尋找所有匹配的日文片段
-    for match in re.finditer(pattern, text):
-        # 添加匹配之前的文本（中文或其他）
-        result += text[last_end:match.start()]
-        # 添加被 JP 標記包裹的日文
-        jp_text = match.group()
-        result += f'</p><p class="JP">{jp_text}</p><p class="ZHTW">'
-        # 更新位置
-        last_end = match.end()
+    # 創建正則表達式用於分割文本，保留標點符號
+    pattern = f'([{re.escape(all_puncts)}])'
     
-    # 添加最後一個匹配之後的文本
-    result += text[last_end:]
+    # 使用標點符號分割文本，但保留標點符號作為分割項
+    segments = re.split(pattern, text)
     
-    return result
+    # 處理結果
+    result = []
+    current_segment = ""
+    
+    for i in range(0, len(segments)):
+        current = segments[i]
+        if not current:  # 跳過空白項
+            continue
+            
+        # 將當前段落添加到當前分段
+        current_segment += current
+        
+        # 如果當前項是標點符號或是最後一項，則處理並重置當前分段
+        if current in all_puncts or i == len(segments) - 1:
+            # 如果分段不為空，處理它
+            if current_segment.strip():
+                # 如果包含日文，標記整個分段
+                if contains_jp(current_segment):
+                    result.append(f'</p><p class="JP">{current_segment}</p><p class="ZHTW">')
+                else:
+                    result.append(current_segment)
+            
+            # 重置當前分段
+            current_segment = ""
+    
+    return ''.join(result)
 
 def cleanup_xml(xml_text):
     """
@@ -88,7 +111,9 @@ def process_xml(xml_text):
     
     # 只處理ZHTW
     result = re.sub(r'<p class="ZHTW">(.*?)</p>', repl, xml_text, flags=re.DOTALL)
-    
+    print("處理後的XML:")  # Debug: 查看處理前的XML
+    print(result)  # Debug: 查看處理後的結果
+
     # 進行DOM清理和合併
     result = cleanup_xml(result)
     
