@@ -222,6 +222,19 @@ script(type="text/javascript").
       
       // Update the content with marked sections
       contentDiv.innerHTML = processedHtml;
+
+      // Support explicit language classes
+      const jpClassElems = contentDiv.querySelectorAll('.JP');
+      jpClassElems.forEach(el => {
+        el.setAttribute('lang', 'ja');
+        el.classList.add('japanese-section');
+      });
+
+      const zhClassElems = contentDiv.querySelectorAll('.ZHTW');
+      zhClassElems.forEach(el => {
+        el.setAttribute('lang', 'zh-tw');
+        el.classList.add('chinese-section');
+      });
       
       // Add language attributes to help with language detection
       const paragraphs = contentDiv.querySelectorAll('p');
